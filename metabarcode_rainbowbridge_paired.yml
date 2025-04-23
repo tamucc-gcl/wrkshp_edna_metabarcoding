@@ -1,19 +1,19 @@
 #https://github.com/mhoban/rainbow_bridge - description of parameters
 
-metadata: PATH_TO_METADATA #At least two columns with sample IDs in both - name columns "sample", "sample_name"
-barcode: PATH_TO_BARCODE
-sample-map: PATH_TO_SAMPLEIDS
-reads: PATH_TO_FASTQ
+metadata: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018/rb_input_metadata.txt
+barcode: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018/rb_input_barcode.txt
+sample-map: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018/rb_input_sample_map.txt
+reads: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018
 blast-db: /scratch/group/p.bio240270.000/databases/midori2_latest/midori2_latest #Or change blast DB to use
 
-demultiplexed-by: index #change to barcode if not demultiplexed
+demultiplexed-by: combined #use for pooled barcoded primers across Illumina index pairs 
 publish-mode: symlink
 fastqc: true
 paired: true
 r1: R1
 r2: R2
 
-no-pcr: true
+no-pcr: false
 
 denoiser: "vsearch"
 min-abundance: 8
@@ -35,12 +35,11 @@ lulu-min-rc: 0.95
 
 collapse-taxonomy: true
 lca-qcov: 90
-lca-pid: 90
-lca-diff: 0.75
-lca-filter-max-qcov: true
+lca-pid: 80
+lca-diff: 5
+lca-filter-max-qcov: false
 dropped: "LCA_dropped"
 lca-taxon-filter: "uncultured|environmental sample|clone|synthetic|OL863216|OR892742" #Remove two ticks that are actually samples of the cow blood
-
 taxon-priority: lca
 
 #insect: mlCOIint
