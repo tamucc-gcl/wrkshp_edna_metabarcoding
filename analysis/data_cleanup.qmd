@@ -73,11 +73,13 @@ zotu_taxonomy <- abundance_matrix %>%
 ```
 
 ## Data Summary
+
 ```{r}
 
 ```
 
-## Data Cleaning 
+## Data Cleaning
+
 Remove samples/zotus which don't meet prespecified criteria:
 
 1.  zOTU sequence must be 313 bp length
@@ -149,8 +151,8 @@ predator_gut_contents <- abundance_matrix %>%
 cat(paste(msgs, collapse = "\n"))
 ```
 
-## Post Cleaning Data Summary 
+## Post Cleaning Data Summary
+
 ```{r}
 
 ```
-
