@@ -1,0 +1,6 @@
+outs:
+- md5: 758e403159e4945d89580cd4fe06dc2e.dir
+  size: 1939378530
+  nfiles: 22
+  hash: md5
+  path: fastq_files

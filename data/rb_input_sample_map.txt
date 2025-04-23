@@ -1,0 +1,11 @@
+SimonsH1	SimonsH1_R1.fastq.gz	SimonsH1_R2.fastq.gz
+SimonsH2	SimonsH2_R1.fastq.gz	SimonsH2_R2.fastq.gz
+SimonsH3	SimonsH3_R1.fastq.gz	SimonsH3_R2.fastq.gz
+SimonsH4	SimonsH4_R1.fastq.gz	SimonsH4_R2.fastq.gz
+SimonsH5	SimonsH5_R1.fastq.gz	SimonsH5_R2.fastq.gz
+SimonsH6	SimonsH6_R1.fastq.gz	SimonsH6_R2.fastq.gz
+SimonsL1	SimonsL1_R1.fastq.gz	SimonsL1_R2.fastq.gz
+SimonsL2	SimonsL2_R1.fastq.gz	SimonsL2_R2.fastq.gz
+SimonsL3	SimonsL3_R1.fastq.gz	SimonsL3_R2.fastq.gz
+SimonsL4	SimonsL4_R1.fastq.gz	SimonsL4_R2.fastq.gz
+SimonsL5	SimonsL5_R1.fastq.gz	SimonsL5_R2.fastq.gz
