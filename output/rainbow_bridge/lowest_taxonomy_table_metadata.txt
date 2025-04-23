@@ -1,0 +1,4 @@
+domain, kingdom, phylum, class, order, family, genus, species: Taxonomic classification of the zOTU.
+taxid_rank: The lowest level of taxonomic classification.
+n_zotu: Number of zOTUs classified to the specified lowest level of taxonomic classification
+SimonsH1_1009A, SimonsH1_1012A, SimonsH1_1044A, ..., SimonsL5_834O, SimonsL5_860A, SimonsL5_884A: Number of reads of each lowest taxonomic level in the specified sample

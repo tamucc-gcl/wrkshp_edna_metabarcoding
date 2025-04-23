@@ -1,0 +1,4 @@
+[core]
+    remote = crest
+['remote "crest"']
+    url = ssh://jselwyn@crest-files.tamucc.edu:/work/birdlab/dvc_storage/wrkshp_edna_metabarcoding

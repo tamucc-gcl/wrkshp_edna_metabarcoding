@@ -1,10 +1,10 @@
 #https://github.com/mhoban/rainbow_bridge - description of parameters
 
-metadata: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018/rb_input_metadata.txt
-barcode: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018/rb_input_barcode.txt
-sample-map: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018/rb_input_sample_map.txt
-reads: /scratch/group/p.bio240270.000/kll_marb6596_dis_edna_prj_simons_gut-content/data/simons_2018
-blast-db: /scratch/group/p.bio240270.000/databases/midori2_latest/midori2_latest #Or change blast DB to use
+metadata: /scratch/group/p.bio240270.000/wrkshp_edna_metabarcoding/data/rb_input_metadata.txt
+barcode: /scratch/group/p.bio240270.000/wrkshp_edna_metabarcoding/data/rb_input_barcode.txt
+sample-map: /scratch/group/p.bio240270.000/wrkshp_edna_metabarcoding/data/rb_input_sample_map.txt
+reads: /scratch/group/p.bio240270.000/wrkshp_edna_metabarcoding/data/fastq_files
+blast-db: /scratch/group/p.bio240270.000/databases/midori2_latest/midori2_latest
 
 demultiplexed-by: combined #use for pooled barcoded primers across Illumina index pairs 
 publish-mode: symlink
@@ -21,7 +21,6 @@ alpha: 2.0
 zotu-identity: 0.97
 
 blast: true
-#blast-taxdb: /scratch/group/p.bio240270.000/databases/midori2_custom_2020-06-15_blast_sp_uniq/taxid_map
 max-query-results: 1000
 qcov: 50
 percent-identity: 50
@@ -39,7 +38,7 @@ lca-pid: 80
 lca-diff: 5
 lca-filter-max-qcov: false
 dropped: "LCA_dropped"
-lca-taxon-filter: "uncultured|environmental sample|clone|synthetic|OL863216|OR892742" #Remove two ticks that are actually samples of the cow blood
+lca-taxon-filter: "uncultured|environmental sample|clone|synthetic"
 taxon-priority: lca
 
 #insect: mlCOIint
@@ -49,7 +48,7 @@ taxon-priority: lca
 #insect-ping: 0.98
 
 phyloseq: true
-taxonomy: lca #combined when insect works
+taxonomy: lca
 no-tree: true
 
 singularity-cache: /scratch/group/p.bio240270.000/software
