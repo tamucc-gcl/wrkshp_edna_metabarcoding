@@ -1,0 +1,156 @@
+---
+title: "eDNA Data Cleaning"
+author: "TAMUCC - Genomics Core Laboratory"
+format: html
+editor: visual
+
+execute: 
+  echo: true
+  warning: false
+---
+
+## Analysis Setting
+
+```{r}
+min_read_count <- 1000 #Minimum number of reads in a sample to keep it
+```
+
+## Set-up Analysis Environment
+
+```{r}
+#| warning: false
+#| code-summary: "Libraries"
+#| code-fold: true
+
+library(janitor)
+library(vegan)
+library(iNEXT)
+library(HierDpart)
+library(tidyverse)
+
+source("https://raw.githubusercontent.com/tamucc-gcl/iDIP.phylo/refs/heads/main/iDIP.phylo.R")
+```
+
+```{r}
+#| code-summary: "Read in Data"
+#| code-fold: true
+
+samples_with_barcodes <- read_tsv(str_c(here::here(),
+               'data/rb_input_barcode.txt',
+               sep = '/'),
+               show_col_types = FALSE) %>% 
+  select(sample) %>% 
+  separate_wider_delim(cols = sample,
+                       names = c("pool", "sample_id"),
+                       delim = "_") 
+
+sampling_metadata <- read_tsv(str_c(here::here(),
+                                    'data/Simons_MasterSheet_2017-11-10_2.tsv',
+                                   sep = '/'), 
+                             show_col_types = FALSE, na = c('NA', '?', '')) %>%
+  clean_names() %>% 
+  mutate(sample_id = str_replace_all(vial_label, '-', ''),
+         .keep = 'unused') %>%
+  inner_join(samples_with_barcodes, 
+             by = 'sample_id')
+
+
+#there are two samples with sequencing (in abundance matrix/samples_with_barcodes) without any info in the metadata: 1949E & 1751A
+
+abundance_matrix <- read_csv(str_c(here::here(),
+                                   'output/rainbow_bridge/zotu_table.csv',
+                                   sep = '/'), 
+                             show_col_types = FALSE)
+
+zotu_sequences <- Biostrings::readDNAStringSet(str_c(here::here(), 
+                                   'output/rainbow_bridge/zotu_sequences.fasta',
+                                   sep = '/')) 
+
+zotu_taxonomy <- abundance_matrix %>%
+  select(zotu, domain:species, taxid_rank) %>%
+  distinct()
+
+```
+
+## Data Summary
+```{r}
+
+```
+
+## Data Cleaning 
+Remove samples/zotus which don't meet prespecified criteria:
+
+1.  zOTU sequence must be 313 bp length
+2.  Remove zOTUs identified as the predator species
+3.  Remove Predator species with less than 1,000 reads across all samples/zOTUs
+
+```{r}
+#| code-summary: "Clean Data"
+#| code-fold: true
+
+# Create a variable to store messages
+msgs <- c()
+
+filter_predators <- function(data, min_reads){
+  out <- data %>%
+    filter(sum(n_reads) >= min_read_count,
+           .by = c(predator_species_name)) 
+  
+  removed_preds <- anti_join(data, out,
+                             by = colnames(data)) %>%
+    pull(predator_species_name) %>% n_distinct()
+  
+  msgs <<- c(msgs, paste0('\n', 'Number of predator species with fewer than ', 
+          scales::comma(min_reads), ' total reads: ', scales::comma(removed_preds)))
+  msgs <<- c(msgs, paste0('Predator species remaining: ', scales::comma(n_distinct(out$predator_species_name)), '\n'))
+  out 
+}
+
+filter_self <- function(data){
+  out <- data %>%
+    filter(species != predator_species_name) 
+  
+  removed_zotus <- anti_join(data, out,
+                             by = colnames(data)) %>%
+    pull(zotu) %>% n_distinct()
+  
+  msgs <<- c(msgs, paste0('\n', 'Number of zOTUs matching predator species: ', scales::comma(removed_zotus)))
+  msgs <<- c(msgs, paste0('zOTUs remaining: ', scales::comma(n_distinct(out$zotu)), '\n'))
+  
+  out
+}
+
+# Identify zotus with a non-standard length sequence
+zotus_to_keep <- names(zotu_sequences)[Biostrings::width(zotu_sequences) == 313] %>%
+  str_extract('Zotu[0-9]+')
+
+msgs <- c(msgs, paste0('\n', 'Number of zOTUs not 313 bp long: ', 
+                       scales::comma(length(zotu_sequences) - length(zotus_to_keep))))
+msgs <- c(msgs, paste0('zOTUs remaining: ', scales::comma(length(zotu_sequences)), '\n'))
+
+# Main processing
+predator_gut_contents <- abundance_matrix %>%
+  select(zotu, species, starts_with("Simons")) %>%
+  filter(zotu %in% zotus_to_keep) %>%
+  pivot_longer(cols = starts_with("Simons"),
+               names_to = c('pool', 'sample_id'),
+               names_pattern = '(.*)_(.*)',
+               values_to = 'n_reads') %>%
+  filter(n_reads > 0) %>%
+  inner_join(select(sampling_metadata,
+                    pool, sample_id,
+                    predator_species_name),
+             by = c('pool', 'sample_id')) %>%
+  filter_self() %>%
+  select(-species) %>%
+  filter_predators(min_read_count)
+
+# Finally, print all collected messages
+cat(paste(msgs, collapse = "\n"))
+```
+
+## Post Cleaning Data Summary 
+```{r}
+
+```
+
