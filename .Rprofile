@@ -20,7 +20,7 @@ if (interactive() && requireNamespace("rstudioapi", quietly = TRUE)) {
 }
 
 # only run on Colab
-if (nzchar(Sys.getenv("COLAB_GPU"))) {
+if (nzchar(Sys.getenv("COLAB"))) {
   # paths under Drive
   gdrive <- "/content/drive/My Drive/colab_renv"
   lib    <- file.path(gdrive, "library")
