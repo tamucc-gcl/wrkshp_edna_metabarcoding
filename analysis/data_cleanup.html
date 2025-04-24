@@ -8,7 +8,7 @@
 
 <meta name="author" content="TAMUCC - Genomics Core Laboratory">
 
-<title>zotu_alpha_diversity</title>
+<title>eDNA Data Cleaning</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">zotu_alpha_diversity</h1>
+<h1 class="title">eDNA Data Cleaning</h1>
 </div>
 
 
@@ -113,12 +113,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <details>
 <summary>Libraries</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(vegan)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(iNEXT)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(HierDpart)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"https://raw.githubusercontent.com/tamucc-gcl/iDIP.phylo/refs/heads/main/iDIP.phylo.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggtext)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggrepel)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell">
@@ -161,8 +159,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </details>
 </div>
 </section>
+<section id="join-data" class="level2">
+<h2 class="anchored" data-anchor-id="join-data">Join Data</h2>
+<div class="cell">
+<details>
+<summary>Join Data</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>joined_zotu_data <span class="ot">&lt;-</span> abundance_matrix <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(zotu, species, <span class="fu">starts_with</span>(<span class="st">"Simons"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">starts_with</span>(<span class="st">"Simons"</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="fu">c</span>(<span class="st">'pool'</span>, <span class="st">'sample_id'</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_pattern =</span> <span class="st">'(.*)_(.*)'</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">'n_reads'</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(<span class="fu">select</span>(sampling_metadata,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                    pool, sample_id,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                    predator_species_name),</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>             <span class="at">by =</span> <span class="fu">c</span>(<span class="st">'pool'</span>, <span class="st">'sample_id'</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_reads <span class="sc">&gt;</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
 <section id="data-summary" class="level2">
 <h2 class="anchored" data-anchor-id="data-summary">Data Summary</h2>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="data_cleanup_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
 </section>
 <section id="data-cleaning" class="level2">
 <h2 class="anchored" data-anchor-id="data-cleaning">Data Cleaning</h2>
@@ -175,70 +197,60 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <details>
 <summary>Clean Data</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a variable to store messages</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>msgs <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>filter_predators <span class="ot">&lt;-</span> <span class="cf">function</span>(data, min_reads){</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="fu">sum</span>(n_reads) <span class="sc">&gt;=</span> min_read_count,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">.by =</span> <span class="fu">c</span>(predator_species_name)) </span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  removed_preds <span class="ot">&lt;-</span> <span class="fu">anti_join</span>(data, out,</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>                             <span class="at">by =</span> <span class="fu">colnames</span>(data)) <span class="sc">%&gt;%</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(predator_species_name) <span class="sc">%&gt;%</span> <span class="fu">n_distinct</span>()</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>, <span class="st">'Number of predator species with fewer than '</span>, </span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>          scales<span class="sc">::</span><span class="fu">comma</span>(min_reads), <span class="st">' total reads: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(removed_preds)))</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'Predator species remaining: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">n_distinct</span>(out<span class="sc">$</span>predator_species_name)), <span class="st">'</span><span class="sc">\n</span><span class="st">'</span>))</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  out </span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>filter_self <span class="ot">&lt;-</span> <span class="cf">function</span>(data){</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(species <span class="sc">!=</span> predator_species_name) </span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>  removed_zotus <span class="ot">&lt;-</span> <span class="fu">anti_join</span>(data, out,</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>                             <span class="at">by =</span> <span class="fu">colnames</span>(data)) <span class="sc">%&gt;%</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(zotu) <span class="sc">%&gt;%</span> <span class="fu">n_distinct</span>()</span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>, <span class="st">'Number of zOTUs matching predator species: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(removed_zotus)))</span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'zOTUs remaining: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">n_distinct</span>(out<span class="sc">$</span>zotu)), <span class="st">'</span><span class="sc">\n</span><span class="st">'</span>))</span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  out</span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify zotus with a non-standard length sequence</span></span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>zotus_to_keep <span class="ot">&lt;-</span> <span class="fu">names</span>(zotu_sequences)[Biostrings<span class="sc">::</span><span class="fu">width</span>(zotu_sequences) <span class="sc">==</span> <span class="dv">313</span>] <span class="sc">%&gt;%</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">str_extract</span>(<span class="st">'Zotu[0-9]+'</span>)</span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>msgs <span class="ot">&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>, <span class="st">'Number of zOTUs not 313 bp long: '</span>, </span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>                       scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">length</span>(zotu_sequences) <span class="sc">-</span> <span class="fu">length</span>(zotus_to_keep))))</span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>msgs <span class="ot">&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'zOTUs remaining: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">length</span>(zotu_sequences)), <span class="st">'</span><span class="sc">\n</span><span class="st">'</span>))</span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="co"># Main processing</span></span>
-<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>predator_gut_contents <span class="ot">&lt;-</span> abundance_matrix <span class="sc">%&gt;%</span></span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(zotu, species, <span class="fu">starts_with</span>(<span class="st">"Simons"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(zotu <span class="sc">%in%</span> zotus_to_keep) <span class="sc">%&gt;%</span></span>
-<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">starts_with</span>(<span class="st">"Simons"</span>),</span>
-<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="fu">c</span>(<span class="st">'pool'</span>, <span class="st">'sample_id'</span>),</span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_pattern =</span> <span class="st">'(.*)_(.*)'</span>,</span>
-<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">'n_reads'</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_reads <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(<span class="fu">select</span>(sampling_metadata,</span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>                    pool, sample_id,</span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>                    predator_species_name),</span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>             <span class="at">by =</span> <span class="fu">c</span>(<span class="st">'pool'</span>, <span class="st">'sample_id'</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter_self</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>species) <span class="sc">%&gt;%</span></span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter_predators</span>(min_read_count)</span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a><span class="co"># Finally, print all collected messages</span></span>
-<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(msgs, <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a variable to store messages</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>msgs <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>filter_predators <span class="ot">&lt;-</span> <span class="cf">function</span>(data, min_reads){</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="fu">sum</span>(n_reads) <span class="sc">&gt;=</span> min_read_count,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">.by =</span> <span class="fu">c</span>(predator_species_name)) </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  removed_preds <span class="ot">&lt;-</span> <span class="fu">anti_join</span>(data, out,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                             <span class="at">by =</span> <span class="fu">colnames</span>(data)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(predator_species_name) <span class="sc">%&gt;%</span> <span class="fu">n_distinct</span>()</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>, <span class="st">'Number of predator species with fewer than '</span>, </span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>          scales<span class="sc">::</span><span class="fu">comma</span>(min_reads), <span class="st">' total reads: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(removed_preds)))</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'Predator species remaining: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">n_distinct</span>(out<span class="sc">$</span>predator_species_name)), <span class="st">'</span><span class="sc">\n</span><span class="st">'</span>))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  out </span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>filter_self <span class="ot">&lt;-</span> <span class="cf">function</span>(data){</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(species <span class="sc">!=</span> predator_species_name) </span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  removed_zotus <span class="ot">&lt;-</span> <span class="fu">anti_join</span>(data, out,</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>                             <span class="at">by =</span> <span class="fu">colnames</span>(data)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(zotu) <span class="sc">%&gt;%</span> <span class="fu">n_distinct</span>()</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>, <span class="st">'Number of zOTUs matching predator species: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(removed_zotus)))</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  msgs <span class="ot">&lt;&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'zOTUs remaining: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">n_distinct</span>(out<span class="sc">$</span>zotu)), <span class="st">'</span><span class="sc">\n</span><span class="st">'</span>))</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  out</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify zotus with a non-standard length sequence</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>zotus_to_keep <span class="ot">&lt;-</span> <span class="fu">names</span>(zotu_sequences)[Biostrings<span class="sc">::</span><span class="fu">width</span>(zotu_sequences) <span class="sc">==</span> <span class="dv">313</span>] <span class="sc">%&gt;%</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">str_extract</span>(<span class="st">'Zotu[0-9]+'</span>)</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>msgs <span class="ot">&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>, <span class="st">'Number of zOTUs not 313 bp long: '</span>, </span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>                       scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">length</span>(zotu_sequences) <span class="sc">-</span> <span class="fu">length</span>(zotus_to_keep))))</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>msgs <span class="ot">&lt;-</span> <span class="fu">c</span>(msgs, <span class="fu">paste0</span>(<span class="st">'zOTUs remaining: '</span>, scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">length</span>(zotus_to_keep)), <span class="st">'</span><span class="sc">\n</span><span class="st">'</span>))</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="co"># Main processing</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>predator_gut_contents <span class="ot">&lt;-</span> joined_zotu_data <span class="sc">%&gt;%</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(zotu <span class="sc">%in%</span> zotus_to_keep) <span class="sc">%&gt;%</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter_self</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>species) <span class="sc">%&gt;%</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter_predators</span>(min_read_count)</span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Finally, print all collected messages</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(msgs, <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Number of zOTUs not 313 bp long: 76
-zOTUs remaining: 536
+zOTUs remaining: 460
 
 
 Number of zOTUs matching predator species: 27
@@ -252,6 +264,32 @@ Predator species remaining: 34</code></pre>
 </section>
 <section id="post-cleaning-data-summary" class="level2">
 <h2 class="anchored" data-anchor-id="post-cleaning-data-summary">Post Cleaning Data Summary</h2>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="data_cleanup_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="get-predator-information" class="level2">
+<h2 class="anchored" data-anchor-id="get-predator-information">Get Predator Information</h2>
+</section>
+<section id="write-cleaned-files-for-future-use" class="level2">
+<h2 class="anchored" data-anchor-id="write-cleaned-files-for-future-use">Write Cleaned files for future use</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="fu">str_c</span>(here<span class="sc">::</span><span class="fu">here</span>(), <span class="st">'intermediate_files'</span>, <span class="at">sep =</span> <span class="st">'/'</span>), <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>predator_gut_contents <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="st">'zotu'</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">values_from =</span> n_reads,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>              <span class="at">values_fill =</span> 0L) <span class="sc">%&gt;%</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write_csv</span>(<span class="fu">str_c</span>(here<span class="sc">::</span><span class="fu">here</span>(), </span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>                  <span class="st">'intermediate_files/filtered_zotu_counts.csv'</span>,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                  <span class="at">sep =</span> <span class="st">'/'</span>))</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(zotu_taxonomy,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>          <span class="fu">str_c</span>(here<span class="sc">::</span><span class="fu">here</span>(), </span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                  <span class="st">'intermediate_files/zotu_taxonomy.csv'</span>,</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                  <span class="at">sep =</span> <span class="st">'/'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 
 </main>

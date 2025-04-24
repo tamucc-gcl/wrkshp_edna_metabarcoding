@@ -19,3 +19,20 @@ if (interactive() && requireNamespace("rstudioapi", quietly = TRUE)) {
   }, action = "append")
 }
 
+# only run on Colab
+if (nzchar(Sys.getenv("COLAB_GPU"))) {
+  # paths under Drive
+  gdrive <- "/content/drive/My Drive/colab_renv"
+  lib    <- file.path(gdrive, "library")
+  cache  <- file.path(gdrive, "cache")
+
+  dir.create(lib,   recursive = TRUE, showWarnings = FALSE)
+  dir.create(cache, recursive = TRUE, showWarnings = FALSE)
+
+  # tell renv to use Drive
+  Sys.setenv(
+    RENV_PATHS_LIBRARY = lib,
+    RENV_PATHS_CACHE   = cache
+  )
+  .libPaths(lib)
+}
