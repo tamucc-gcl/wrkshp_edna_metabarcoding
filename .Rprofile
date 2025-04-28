@@ -22,7 +22,7 @@ source("renv/activate.R")
 # only run on Colab
 if (nzchar(Sys.getenv("COLAB"))) {
   # paths under Drive
-  gdrive <- "/content/drive/edna_libraries"
+  gdrive <- "/content/drive/MyDrive/edna_libraries"
   lib    <- file.path(gdrive, "library")
   cache  <- file.path(gdrive, "cache")
 
