@@ -23,7 +23,7 @@ source("renv/activate.R")
 if (nzchar(Sys.getenv("COLAB"))) {
   # paths under Drive
   gdrive <- "/content/drive/MyDrive/edna_libraries"
-  lib    <- file.path(gdrive, "library")
+  lib    <- file.path(gdrive)
   cache  <- file.path(gdrive, "cache")
 
   dir.create(lib,   recursive = TRUE, showWarnings = FALSE)
