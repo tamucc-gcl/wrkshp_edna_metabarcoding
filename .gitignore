@@ -4,3 +4,4 @@ intermediate_files/
 .Rhistory
 .RData
 .Ruserdata
+!intermediate_files/predator_taxonomy.rds
