@@ -63,9 +63,9 @@ abundance_matrix <- read_csv(str_c(here::here(),
                                    sep = '/'), 
                              show_col_types = FALSE)
 
-zotu_sequences <- Biostrings::readDNAStringSet(str_c(here::here(), 
+zotu_sequences <- Biostrings::readDNAStringSet(str_c(here::here(),
                                    'output/rainbow_bridge/zotu_sequences.fasta',
-                                   sep = '/')) 
+                                   sep = '/'))
 
 zotu_taxonomy <- abundance_matrix %>%
   select(zotu, domain:species, taxid_rank) %>%
