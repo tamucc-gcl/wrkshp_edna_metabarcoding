@@ -2,22 +2,59 @@
 source("renv/activate.R")
 # ── End renv autoloading ─────────────────────────────────────────────────────────
 
-#if (interactive() && requireNamespace("rstudioapi", quietly = TRUE)) {
-#  setHook("rstudio.sessionInit", function(newSession) {
-#    if (newSession && rstudioapi::isAvailable()) {
-#      later::later(function() {
-#        files_to_open <- c(
-#          "analysis/data_cleanup.qmd"
-#        )
-#        for (f in files_to_open) {
-#          if (file.exists(f)) {
-#            try(rstudioapi::navigateToFile(f, line = -1L, column = -1L), silent = TRUE)
-#          }
-#        }
-#      }, delay = 1) # delay 1 second
-#    }
-#  }, action = "append")
-#}
+
+# ---- Open all *.R and *.qmd files in analysis/construction on project load -----
+if (interactive() &&
+    requireNamespace("later",      quietly = TRUE) &&
+    requireNamespace("rstudioapi", quietly = TRUE)) {
+
+  later::later(function() {
+
+    ## Collect files ------------------------------------------------------------
+    project_root <- tryCatch(rstudioapi::getActiveProject(),
+                             error = function(e) NULL)
+    if (is.null(project_root)) project_root <- getwd()
+
+    files_to_open <- list.files(
+      file.path(project_root, "analysis", "construction"),
+      pattern = "\\.(R|qmd)$",
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
+    files_to_open <- sort(normalizePath(files_to_open, winslash = "/"))
+
+    if (!length(files_to_open)) {
+      message("[startup-helper] No .R or .qmd files found.")
+      return(invisible())
+    }
+
+    ## Helper -------------------------------------------------------------------
+    safe_open <- function(path) {
+      ext <- tools::file_ext(path)
+
+      # For .qmd files, avoid RStudio's YAML dependency parser if yaml isn't installed
+      if (tolower(ext) == "qmd" && !requireNamespace("yaml", quietly = TRUE)) {
+        try(file.edit(path), silent = TRUE)
+        return(TRUE)
+      }
+
+      opened <- FALSE
+      if (rstudioapi::isAvailable() && rstudioapi::hasFun("openFile")) {
+        opened <- tryCatch({
+          rstudioapi::callFun("openFile", path)
+          TRUE
+        }, error = function(e) FALSE)
+      }
+      if (!opened) try(file.edit(path), silent = TRUE)
+      TRUE                               # <- always return a logical(1)
+    }
+
+    ## Open every file ----------------------------------------------------------
+    for (f in files_to_open) safe_open(f)
+
+  }, delay = 2)      # seconds; increase if your IDE needs more time to settle
+}
+# -------------------------------------------------------------------------------
 
 # only run on Colab
 if (nzchar(Sys.getenv("COLAB"))) {
