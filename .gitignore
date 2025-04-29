@@ -1,7 +1,7 @@
+!intermediate_files/predator_taxonomy.rds
 intermediate_files/
 *tar.xz
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
-!intermediate_files/predator_taxonomy.rds
