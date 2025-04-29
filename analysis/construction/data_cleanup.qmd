@@ -53,7 +53,9 @@ sampling_metadata <- read_tsv(str_c(here::here(),
   mutate(sample_id = str_replace_all(vial_label, '-', ''),
          .keep = 'unused') %>%
   inner_join(samples_with_barcodes, 
-             by = 'sample_id')
+             by = 'sample_id') %>%
+  mutate(predator_species_name = if_else(predator_species_name == 'Ophidion welshi', 
+                                         "Ophidion josephi", predator_species_name))
 
 
 #there are two samples with sequencing (in abundance matrix/samples_with_barcodes) without any info in the metadata: 1949E & 1751A
