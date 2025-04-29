@@ -1,5 +1,5 @@
-!intermediate_files/predator_taxonomy.rds
 intermediate_files/
+!intermediate_files/predator_taxonomy.rds
 *tar.xz
 .Rproj.user
 .Rhistory
