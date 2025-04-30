@@ -360,7 +360,9 @@ if(!file.exists(str_c(here::here(),
 ## Write Cleaned files for future use
 
 ```{r}
-dir.create(str_c(here::here(), 'intermediate_files', sep = '/'), showWarnings = FALSE)
+storage_dir <- if_else(nzchar(Sys.getenv("COLAB")), persistent_directory, here::here())
+dir.create(str_c(storage_dir, 'intermediate_files', sep = '/'), showWarnings = FALSE)
+
 predator_gut_contents %>%
   pivot_wider(names_from = 'zotu',
               values_from = n_reads,

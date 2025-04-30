@@ -9,6 +9,17 @@ execute:
   warning: false
 ---
 
+## Analysis Setting
+
+```{r}
+min_samples_predator <- 5 #Minimum number of samples of a given predator species to keep it
+inext_predator_subsample <- 5
+inext_bootstraps <- 10
+tree_bootstraps <- 5
+tree_evolutionary_model <- 'JC'
+
+```
+
 ## Set-up Analysis Environment
 
 ```{r}
@@ -16,10 +27,19 @@ execute:
 #| code-summary: "Libraries"
 #| code-fold: true
 
+library(Biostrings)
 library(tidyverse)
+library(iNEXT)
+library(phangorn)
+library(picante)
+library(HierDpart)
+library(ade4)
 library(ggnested)
 library(ggtext)
 library(patchwork)
+
+source('https://raw.githubusercontent.com/tamucc-gcl/iDIP.phylo/refs/heads/main/iDIP.phylo.R')
+source(str_c(here::here(), 'r_functions/fasta2tree.R', sep = '/'))
 ```
 
 ## Read Filtered Data
@@ -38,11 +58,20 @@ zotu_taxonomy <- read_csv(str_c(here::here(),
 predator_taxonomy <- read_rds(str_c(here::here(), 
                                     'intermediate_files/predator_taxonomy.rds',
                                     sep = '/'))
+
+
+zotu_sequences <- readDNAStringSet(str_c(here::here(), 
+                                         'output/rainbow_bridge/zotu_sequences.fasta',
+                                         sep = '/'))
+
+names(zotu_sequences) <- str_extract(names(zotu_sequences), 'Zotu[0-9]+')
+zotu_sequences <- zotu_sequences[names(zotu_sequences) %in% colnames(predator_gut_contents)]
 ```
 
 ## Plot Predator Stomach Contents Composition
 
 ```{r}
+MIN_NUMBER_PREDATORS_IN <- 20
 sample_composition <- predator_gut_contents %>%
   pivot_longer(cols = starts_with('Zotu'),
                names_to = 'zotu',
@@ -53,7 +82,7 @@ sample_composition <- predator_gut_contents %>%
   mutate(across(where(is.character), 
                 ~if_else(. == 'LCA_dropped', NA_character_, .))) %>%
   
-  #Skip species for the sake of the legend
+  #Skip genus & species for the sake of the legend
   mutate(lowest_level = case_when(#!is.na(species) ~ str_c('s_', species),
                                   !is.na(genus) ~ str_c('g_', genus, ' sp.'),
                                   !is.na(family) ~ str_c('f_', family),
@@ -69,7 +98,16 @@ sample_composition <- predator_gut_contents %>%
   
   summarise(n_reads = sum(n_reads),
             zotu = unique(zotu) %>% str_c(collapse = '; '),
-            .by = c(predator_species_name, upper_level, lowest_level))
+            .by = c(predator_species_name, upper_level, lowest_level)) %>%
+  
+  #Lump together for the sake of the legend/interpretabilitu
+  mutate(lowest_level = fct_lump_min(lowest_level, min = MIN_NUMBER_PREDATORS_IN),
+         lowest_level = if_else(lowest_level == 'Other', 
+                                str_c(lowest_level, str_remove(upper_level, '._'), sep = '_'),
+                                lowest_level)) %>%
+  select(-zotu) %>%
+  summarise(n_reads = sum(n_reads),
+            .by = where(is.character))
 
 sample_composition %>%
   left_join(predator_taxonomy,
@@ -81,7 +119,7 @@ sample_composition %>%
            gradient_type = 'both') +
   geom_col(position = 'fill') +
   scale_x_continuous(labels = scales::percent_format()) +
-  guides(fill = guide_legend(ncol = 7)) + #ncol = 5
+  guides(fill = guide_legend(ncol = 2)) + #ncol = 5
   facet_grid(order ~ ., scales = 'free_y', space = 'free_y', switch = 'y') +
   labs(y = NULL, 
        x = 'Relative Number of Reads (%)') +
@@ -90,10 +128,159 @@ sample_composition %>%
         axis.title.y = element_markdown(),
         panel.background = element_rect(colour = 'black'),
         legend.position = 'right',
-        # legend.text = element_markdown(size = 2),
-        # legend.key.size = unit(0.1, "line"),
+        legend.text = element_markdown(size = 4),
         legend.key = element_blank(),
-        strip.text.y = element_text(angle = 180), 
+        legend.key.size = unit(0.5, "line"),
+        strip.text.y.left = element_text(angle = 0), 
+        strip.background = element_blank(),
         strip.placement = "outside")
 
+```
+
+## Using iNEXT to determine alpha diversity
+
+-   Account for sampling depth
+-   Modern improvements to rarifaction ##TODO - In progress
+
+```{r}
+endpoint_reads <- predator_gut_contents %>%
+  filter(n() >= min_samples_predator,
+         .by = predator_species_name) %>%
+  pivot_longer(cols = starts_with('Zotu'),
+               names_to = 'zotu',
+               values_to = 'n_reads') %>%
+  summarise(n_reads = sum(n_reads),
+            .by = sample_id) %>%
+  summarise(mean_reads = mean(n_reads),
+            median_reads = median(n_reads)) %>%
+  pull(mean_reads) %>%
+  floor()
+
+inext_out <- predator_gut_contents %>%
+  
+  filter(n() >= min_samples_predator,
+         .by = predator_species_name) %>%
+  
+  nest(data = -c(predator_species_name)) %>%
+  sample_n(inext_predator_subsample) %>%
+  unnest(data) %>%
+  
+  select(-pool) %>%
+  split(., .$predator_species_name) %>%
+  map(~select(.x, -predator_species_name) %>%
+        column_to_rownames('sample_id') %>%
+        select(where(~sum(.) > 0)) %>%
+        t) %>% 
+  iNEXT(q = c(0),
+        datatype = "abundance",
+        nboot = inext_bootstraps,
+        endpoint = endpoint_reads)
+```
+
+```{r}
+ggiNEXT(inext_out,
+        type = 1,
+        se = T,
+        facet.var = "Assemblage")
+```
+
+## Phylogenetically Informed Alpha Diversity
+
+```{r}
+zotu_tree <- DNAMultipleAlignment(zotu_sequences) %>% 
+  msa::msaConvert("phangorn::phyDat") %>%
+  fasta2tree(n_bootstraps = tree_bootstraps,
+             threshold_bootstraps = floor(tree_bootstraps / 2),
+             model_ml = tree_evolutionary_model)
+
+zotu_tree$tree <- phytools::force.ultrametric(zotu_tree$tree, method = "extend")
+```
+
+Tree Plots
+```{r}
+
+```
+
+## Phylogenetic Diversity
+```{r}
+abundance_phylogeny <- match.phylo.comm(zotu_tree$tree, 
+                                        select(predator_gut_contents, 
+                                               sample_id, starts_with('Zotu')) %>%
+                                          column_to_rownames('sample_id')) 
+
+faiths_diversity <- pd(abundance_phylogeny$comm,
+                       abundance_phylogeny$phy,
+                       include.root = FALSE) %>%
+  as_tibble(rownames = 'sample_id')
+
+sample_pd <- predator_gut_contents %>%
+  select(-starts_with('Zotu')) %>%
+  mutate(phylogenetic_distance = mpd(abundance_phylogeny$comm,
+                                     cophenetic.phylo(abundance_phylogeny$phy),
+                                     abundance.weighted = FALSE)) %>%
+  left_join(faiths_diversity,
+            by = 'sample_id')
+```
+
+```{r}
+sample_pd %>%
+  filter(!is.na(phylogenetic_distance)) %>%
+  mutate(predator_species_name = fct_reorder(predator_species_name, 
+                                             phylogenetic_distance)) %>%
+  ggplot(aes(y = predator_species_name, 
+             x = phylogenetic_distance)) +
+  stat_summary(fun.data = mean_se)
+
+sample_pd %>%
+  filter(!is.na(PD)) %>%
+  mutate(predator_species_name = fct_reorder(predator_species_name, PD)) %>%
+  ggplot(aes(y = predator_species_name, 
+             x = PD)) +
+  stat_summary(fun.data = mean_se)
+```
+## Hierarchical Alpha Diversity - without Phylogenetic Information
+```{r}
+sampling_hierarchy <- predator_gut_contents %>%
+  select(-starts_with('Zotu')) %>%
+  mutate(trophic_level = "predator",
+         stomach_id = str_extract(sample_id, "\\d+")) %>%
+  distinct(trophic_level, predator_species_name, 
+           stomach_id, pcr_id = sample_id) %>%
+  t() %>%
+  as.matrix()
+
+idip_abundance <- select(predator_gut_contents,
+       sample_id, starts_with('Zotu')) %>%
+  column_to_rownames('sample_id') %>%
+  t() 
+
+
+IDIP(abun = idip_abundance,
+     struc = sampling_hierarchy)
+```
+
+## Hierarchical Alpha Diversity - with Phylogenetic Information
+```{r}
+##TODO - FIGURE OUT WHY I NEED THE FIRST TWO LINES
+d <- cophenetic(zotu_tree$tree)
+hc <- hclust(as.dist(d), method = "average")  
+
+iDIP.phylo(abun = idip_abundance,
+           struc = sampling_hierarchy, 
+           tree = write.tree(as.phylo(hc)))
+```
+
+
+## Output Results
+
+```{r}
+inext_out$AsyEst %>%
+  janitor::clean_names() %>%
+  rename(predator_species_name = assemblage) %>%
+  write_csv(str_c(here::here(), 
+                  'output/inext_alpha_diversity.csv',
+                  sep = '/'))
+
+zotu_tree
+sample_pd
 ```
