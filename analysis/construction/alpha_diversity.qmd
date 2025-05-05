@@ -156,25 +156,35 @@ endpoint_reads <- predator_gut_contents %>%
   pull(mean_reads) %>%
   floor()
 
-inext_out <- predator_gut_contents %>%
-  
-  filter(n() >= min_samples_predator,
-         .by = predator_species_name) %>%
-  
-  nest(data = -c(predator_species_name)) %>%
-  sample_n(inext_predator_subsample) %>%
-  unnest(data) %>%
-  
-  select(-pool) %>%
-  split(., .$predator_species_name) %>%
-  map(~select(.x, -predator_species_name) %>%
-        column_to_rownames('sample_id') %>%
-        select(where(~sum(.) > 0)) %>%
-        t) %>% 
-  iNEXT(q = c(0),
-        datatype = "abundance",
-        nboot = inext_bootstraps,
-        endpoint = endpoint_reads)
+if(!file.exists(str_c(here::here(),
+                      'intermediate_files/inext_out.rds',
+                      sep = '/'))){
+  inext_out <- predator_gut_contents %>%
+    
+    filter(n() >= min_samples_predator,
+           .by = predator_species_name) %>%
+    
+    nest(data = -c(predator_species_name)) %>%
+    sample_n(inext_predator_subsample) %>%
+    unnest(data) %>%
+    
+    select(-pool) %>%
+    split(., .$predator_species_name) %>%
+    map(~select(.x, -predator_species_name) %>%
+          column_to_rownames('sample_id') %>%
+          select(where(~sum(.) > 0)) %>%
+          t) %>% 
+    iNEXT(q = c(0),
+          datatype = "abundance",
+          nboot = inext_bootstraps,
+          endpoint = endpoint_reads)
+}
+
+if(nzchar(Sys.getenv("COLAB"))){
+  inext_out.rds <- read_rds(str_c(here::here(),
+                                  'intermediate_files/inext_out.rds',
+                                  sep = '/'))
+}
 ```
 
 ```{r}
@@ -187,30 +197,41 @@ ggiNEXT(inext_out,
 ## Phylogenetically Informed Alpha Diversity
 
 ```{r}
-zotu_tree <- DNAMultipleAlignment(zotu_sequences) %>% 
-  msa::msaConvert("phangorn::phyDat") %>%
-  fasta2tree(n_bootstraps = tree_bootstraps,
-             threshold_bootstraps = floor(tree_bootstraps / 2),
-             model_ml = tree_evolutionary_model)
+if(!file.exists(str_c(here::here(),
+                      'intermediate_files/zotu_tree.rds',
+                      sep = '/'))){
+  zotu_tree <- DNAMultipleAlignment(zotu_sequences) %>% 
+    msa::msaConvert("phangorn::phyDat") %>%
+    fasta2tree(n_bootstraps = tree_bootstraps,
+               threshold_bootstraps = floor(tree_bootstraps / 2),
+               model_ml = tree_evolutionary_model)
+}
 
-zotu_tree$tree <- phytools::force.ultrametric(zotu_tree$tree, method = "extend")
+if(nzchar(Sys.getenv("COLAB"))){
+  zotu_tree <- read_rds(str_c(here::here(),
+                              'intermediate_files/zotu_tree.rds',
+                              sep = '/'))
+}
+
 ```
 
 Tree Plots
+
 ```{r}
 
 ```
 
 ## Phylogenetic Diversity
+
 ```{r}
-abundance_phylogeny <- match.phylo.comm(zotu_tree$tree, 
+abundance_phylogeny <- match.phylo.comm(midpoint(zotu_tree$tree), 
                                         select(predator_gut_contents, 
                                                sample_id, starts_with('Zotu')) %>%
                                           column_to_rownames('sample_id')) 
 
 faiths_diversity <- pd(abundance_phylogeny$comm,
                        abundance_phylogeny$phy,
-                       include.root = FALSE) %>%
+                       include.root = TRUE) %>%
   as_tibble(rownames = 'sample_id')
 
 sample_pd <- predator_gut_contents %>%
@@ -223,22 +244,36 @@ sample_pd <- predator_gut_contents %>%
 ```
 
 ```{r}
+rename_metrics <- as_labeller(c("PD" = "Faith's Diversity", 
+                                "phylogenetic_distance" = "Phylogenetic Distance"))
 sample_pd %>%
-  filter(!is.na(phylogenetic_distance)) %>%
-  mutate(predator_species_name = fct_reorder(predator_species_name, 
-                                             phylogenetic_distance)) %>%
+  select(-SR) %>%
+  left_join(predator_taxonomy,
+            by = c('predator_species_name' = 'species')) %>%
+  pivot_longer(cols = c('phylogenetic_distance', 'PD'),
+               names_to = 'metric',
+               values_to = 'value') %>%
+  filter(!is.na(value)) %>%
   ggplot(aes(y = predator_species_name, 
-             x = phylogenetic_distance)) +
-  stat_summary(fun.data = mean_se)
-
-sample_pd %>%
-  filter(!is.na(PD)) %>%
-  mutate(predator_species_name = fct_reorder(predator_species_name, PD)) %>%
-  ggplot(aes(y = predator_species_name, 
-             x = PD)) +
-  stat_summary(fun.data = mean_se)
+             x = value)) +
+  stat_summary(fun.data = mean_se) +
+  facet_grid(class + order ~ metric, 
+             scales = 'free',
+             space = 'free_y', 
+             switch = 'both', 
+             labeller = labeller(metric = rename_metrics)) +
+  labs(x = NULL,
+       y = 'Predator Species') +
+  theme_classic() +
+  theme(strip.background = element_blank(),
+        strip.text.y.left = element_text(angle = 0), 
+        strip.placement = 'outside',
+        panel.background = element_rect(colour = 'black'),
+        axis.text.y = element_text(face = 'italic'))
 ```
+
 ## Hierarchical Alpha Diversity - without Phylogenetic Information
+
 ```{r}
 sampling_hierarchy <- predator_gut_contents %>%
   select(-starts_with('Zotu')) %>%
@@ -260,27 +295,35 @@ IDIP(abun = idip_abundance,
 ```
 
 ## Hierarchical Alpha Diversity - with Phylogenetic Information
-```{r}
-##TODO - FIGURE OUT WHY I NEED THE FIRST TWO LINES
-d <- cophenetic(zotu_tree$tree)
-hc <- hclust(as.dist(d), method = "average")  
 
+```{r}
+#Rename internal nodes to be unique (not bootstrap values) for idip.phylo
+#nodes must have unique names
+zotu_tree$tree$node.label <- str_c('node', 1:length(zotu_tree$tree$node.label))
+  
 iDIP.phylo(abun = idip_abundance,
            struc = sampling_hierarchy, 
-           tree = write.tree(as.phylo(hc)))
+           tree = write.tree(zotu_tree$tree))
 ```
-
 
 ## Output Results
 
 ```{r}
-inext_out$AsyEst %>%
-  janitor::clean_names() %>%
-  rename(predator_species_name = assemblage) %>%
-  write_csv(str_c(here::here(), 
-                  'output/inext_alpha_diversity.csv',
-                  sep = '/'))
+storage_dir <- if_else(nzchar(Sys.getenv("COLAB")), persistent_directory, here::here())
+dir.create(str_c(storage_dir, 'intermediate_files', sep = '/'), showWarnings = FALSE)
 
-zotu_tree
-sample_pd
+write_rds(inext_out,
+          str_c(storage_dir,
+                'intermediate_files/inext_out.rds',
+                sep = '/'))
+
+write_rds(zotu_tree,
+          str_c(storage_dir,
+                'intermediate_files/zotu_tree.rds',
+                sep = '/'))
+
+write_csv(sample_pd,
+          str_c(storage_dir,
+                'intermediate_files/phylogenetic_alpha_diversity.csv',
+                sep = '/'))
 ```
