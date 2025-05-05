@@ -13,8 +13,9 @@ execute:
 
 ```{r}
 min_samples_predator <- 5 #Minimum number of samples of a given predator species to keep it
-inext_predator_subsample <- 5
-inext_bootstraps <- 10
+MIN_NUMBER_PREDATORS_IN <- 20
+# inext_predator_subsample <- 5
+inext_bootstraps <- 100
 tree_bootstraps <- 100
 tree_evolutionary_model <- 'all'
 
@@ -72,7 +73,6 @@ zotu_sequences <- zotu_sequences[names(zotu_sequences) %in% colnames(predator_gu
 ## Plot Predator Stomach Contents Composition
 
 ```{r}
-MIN_NUMBER_PREDATORS_IN <- 20
 sample_composition <- predator_gut_contents %>%
   pivot_longer(cols = starts_with('Zotu'),
                names_to = 'zotu',
@@ -151,7 +151,7 @@ endpoint_reads <- predator_gut_contents %>%
                names_to = 'zotu',
                values_to = 'n_reads') %>%
   summarise(n_reads = sum(n_reads),
-            .by = sample_id) %>%
+            .by = predator_species_name) %>%
   summarise(mean_reads = mean(n_reads),
             median_reads = median(n_reads)) %>%
   pull(mean_reads) %>%
@@ -165,9 +165,9 @@ if(!file.exists(str_c(here::here(),
     filter(n() >= min_samples_predator,
            .by = predator_species_name) %>%
     
-    nest(data = -c(predator_species_name)) %>%
-    sample_n(inext_predator_subsample) %>%
-    unnest(data) %>%
+    # nest(data = -c(predator_species_name)) %>%
+    # sample_n(inext_predator_subsample) %>%
+    # unnest(data) %>%
     
     select(-pool) %>%
     split(., .$predator_species_name) %>%
