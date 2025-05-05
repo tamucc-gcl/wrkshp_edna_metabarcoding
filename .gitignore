@@ -1,5 +1,8 @@
 intermediate_files/
 !intermediate_files/predator_taxonomy.rds
+!intermediate_files/zotu_tree.rds
+!intermediate_files/inext_out.rds
+
 *tar.xz
 .Rproj.user
 .Rhistory

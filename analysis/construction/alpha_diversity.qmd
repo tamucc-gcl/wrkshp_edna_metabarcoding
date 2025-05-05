@@ -15,8 +15,8 @@ execute:
 min_samples_predator <- 5 #Minimum number of samples of a given predator species to keep it
 inext_predator_subsample <- 5
 inext_bootstraps <- 10
-tree_bootstraps <- 5
-tree_evolutionary_model <- 'JC'
+tree_bootstraps <- 100
+tree_evolutionary_model <- 'all'
 
 ```
 
