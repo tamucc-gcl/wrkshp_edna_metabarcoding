@@ -40,6 +40,7 @@ library(patchwork)
 
 source('https://raw.githubusercontent.com/tamucc-gcl/iDIP.phylo/refs/heads/main/iDIP.phylo.R')
 source(str_c(here::here(), 'r_functions/fasta2tree.R', sep = '/'))
+drive_lib <- "/content/drive/MyDrive/edna_libraries"
 ```
 
 ## Read Filtered Data
@@ -309,7 +310,7 @@ iDIP.phylo(abun = idip_abundance,
 ## Output Results
 
 ```{r}
-storage_dir <- if_else(nzchar(Sys.getenv("COLAB")), persistent_directory, here::here())
+storage_dir <- if_else(nzchar(Sys.getenv("COLAB")), drive_lib, here::here())
 dir.create(str_c(storage_dir, 'intermediate_files', sep = '/'), showWarnings = FALSE)
 
 write_rds(inext_out,
